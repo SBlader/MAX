@@ -26,7 +26,7 @@ genLava (ancho,largo) posiciones n gen =
     let variaciones = [[succ,id],[id,succ,pred],[id,pred]] !! fst (randomR (0,2) gen) in
         genLava (ancho,largo) ([(f x,g y) | f <- variaciones, g <- variaciones] ++ posiciones) (n-1) nextGen
     where
-        (x,y,nextGen) = (fst $ randomR (1,ancho-1) nextGen, fst $ randomR (1,largo-1) gen, snd $ split gen)
+        (x,y,nextGen) = (fst $ randomR (1,ancho-1) nextGen, fst $ randomR (1,largo) gen, snd $ split gen)
 
 -- codigo con el cochino chatgpt
 cambiarCelda :: Mapa -> (Int, Int) -> Celda -> Mapa
@@ -51,7 +51,7 @@ main = do
     mStr <- getLine
     let n = read nStr-1 :: Int
     let m = read mStr-1:: Int
-    let mapa = generarMapaCaminable n m
+    let mapa = generarMapaCaminable (n+1) (m+1)
     let cantidadPozos = round (0.08 * fromIntegral (n*m)) :: Int
     let numeroRandom = 10
     putStrLn "Mapa actualizado: "
@@ -67,8 +67,8 @@ loop mapa pos n m = do
     let newPos = case mov of
             'w' -> [max 0 (min n (head pos - 1)), last pos]
             's' -> [max 0 (min n (head pos + 1)), last pos]
-            'a' -> [head pos, max 0 (min (m-1) (last pos - 1))]
-            'd' -> [head pos, max 0 (min (m-1) (last pos + 1))]
+            'a' -> [head pos, max 0 (min m (last pos - 1))]
+            'd' -> [head pos, max 0 (min m (last pos + 1))]
             _   -> pos
             -- r -> reiniciar el mapa
     let preMapa = changeValueMap (head pos, last pos) Camino mapa

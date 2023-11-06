@@ -54,7 +54,7 @@ main = do
     let n = read nStr :: Int
     let m = read mStr :: Int
     let mapa = generarMapaCaminable n m
-    let cantidadPozos = round (0.08 * fromIntegral ((n*m))) :: Int
+    let cantidadPozos = round (0.08 * fromIntegral (n*m)) :: Int
     let numeroRandom = 10
     putStrLn "Mapa actualizado: "
     let mapaConLava = foldr (\(x, y) acc -> cambiarCelda acc (x, y) Lava) mapa (genLava (n, m) [] cantidadPozos (mkStdGen numeroRandom))

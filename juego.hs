@@ -1,3 +1,4 @@
+
 import System.Process
 -- codigo sin chatgpt
 import System.Random
@@ -53,28 +54,28 @@ main = do
     let n = read nStr :: Int
     let m = read mStr :: Int
     let mapa = generarMapaCaminable n m
-    let cantidadPozos = round (1.5 * fromIntegral (n * m)) :: Int
+    let cantidadPozos = round (0.75 * fromIntegral ((n+m))) :: Int
     let numeroRandom = 10
     putStrLn "Mapa actualizado: "
     let mapaConLava = foldr (\(x, y) acc -> cambiarCelda acc (x, y) Lava) mapa (genLava (n, m) [] cantidadPozos (mkStdGen numeroRandom))
-    loop mapaConLava [0, 0]
+    loop mapaConLava [0, 0] n m
 
-loop :: Mapa -> [Int] -> IO ()
-loop mapa pos = do
+loop :: Mapa -> [Int] -> Int -> Int -> IO ()
+loop mapa pos n m = do
     clearScreen
     print mapa
     print pos
     mov <- getChar
     let newPos = case mov of
-            'w' -> [max 0 (head pos - 1), last pos]
-            's' -> [max 0 (head pos + 1), last pos]
-            'a' -> [head pos, max 0 (last pos - 1)]
-            'd' -> [head pos, max 0 (last pos + 1)]
+            'w' -> [max 0 (min (n-1) (head pos - 1)), last pos]
+            's' -> [max 0 (min (n-1) (head pos + 1)), last pos]
+            'a' -> [head pos, max 0 (min (m-1) (last pos - 1))]
+            'd' -> [head pos, max 0 (min (m-1) (last pos + 1))]
             _   -> pos
             -- r -> reiniciar el mapa
     let preMapa = changeValueMap (head pos, last pos) Camino mapa
     let newMapa = changeValueMap (head newPos, last newPos) Jugador preMapa
-    loop newMapa newPos
+    loop newMapa newPos n m
 
 changeValueMap :: (Int, Int) -> Celda -> Mapa -> Mapa
 changeValueMap (r, c) value (Mapa matriz) =

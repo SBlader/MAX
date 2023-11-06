@@ -1,6 +1,4 @@
-
 import System.Process
--- codigo sin chatgpt
 import System.Random
 
 clearScreen :: IO ()

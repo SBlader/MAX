@@ -65,12 +65,12 @@ loop mapa pos n m = do
     print pos
     mov <- getChar
     let newPos = case mov of
-            'w' -> [max 0 (min (n-1) (head pos - 1)), last pos]
-            's' -> [max 0 (min (n-1) (head pos + 1)), last pos]
-            'a' -> [head pos, max 0 (min (m-1) (last pos - 1))]
-            'd' -> [head pos, max 0 (min (m-1) (last pos + 1))]
-            _   -> pos
-            -- r -> reiniciar el mapa
+        'w' -> [max 0 (min (n-1) (head pos - 1)), last pos]
+        's' -> [max 0 (min (n-1) (head pos + 1)), last pos]
+        'a' -> [head pos, max 0 (min (m-1) (last pos - 1))]
+        'd' -> [head pos, max 0 (min (m-1) (last pos + 1))]
+        _   -> pos
+        -- r -> reiniciar el mapa
     let preMapa = changeValueMap (head pos, last pos) Camino mapa
     let newMapa = changeValueMap (head newPos, last newPos) Jugador preMapa
     loop newMapa newPos n m

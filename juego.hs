@@ -47,33 +47,34 @@ main :: IO ()
 main = do
     putStrLn "Coloque un n:"
     nStr <- getLine
-    putStrLn "Coloque un m:"
-    mStr <- getLine
     let n = read nStr-1 :: Int
-    let m = read mStr-1:: Int
-    let mapa = generarMapaCaminable (n+1) (m+1)
-    let cantidadPozos = round (0.08 * fromIntegral (n*m)) :: Int
+    let mapa = generarMapaCaminable (n+1) (n+1)
+    let cantidadPozos = round (1.5 * fromIntegral n) :: Int
     let numeroRandom = 10
     putStrLn "Mapa actualizado: "
-    let mapaConLava = foldr (\(x, y) acc -> cambiarCelda acc (x, y) Lava) mapa (genLava (n, m) [] cantidadPozos (mkStdGen numeroRandom))
-    loop mapaConLava [0, 0] n m
+    let mapaConLava = foldr (\(x, y) acc -> cambiarCelda acc (x, y) Lava) mapa (genLava (n, n) [] cantidadPozos (mkStdGen numeroRandom))
+    loop mapaConLava (0, 0) n n
 
-loop :: Mapa -> [Int] -> Int -> Int -> IO ()
-loop mapa pos n m = do
+loop :: Mapa -> (Int, Int) -> Int -> Int -> IO ()
+loop mapa (x,y) n m = do
     clearScreen
     print mapa
-    print pos
     mov <- getChar
     let newPos = case mov of
-            'w' -> [max 0 (min n (head pos - 1)), last pos]
-            's' -> [max 0 (min n (head pos + 1)), last pos]
-            'a' -> [head pos, max 0 (min m (last pos - 1))]
-            'd' -> [head pos, max 0 (min m (last pos + 1))]
-            _   -> pos
+            'w' -> (max 0 (min n (x - 1)), y)
+            's' -> (max 0 (min n (x + 1)), y)
+            'a' -> (x, max 0 (min m (y - 1)))
+            'd' -> (x, max 0 (min m (y + 1)))
+            _   -> (x,y)
             -- r -> reiniciar el mapa
-    let preMapa = changeValueMap (head pos, last pos) Camino mapa
-    let newMapa = changeValueMap (head newPos, last newPos) Jugador preMapa
-    loop newMapa newPos n m
+    -- if mapa[head newPos][last newPos] == Lava Then Chao ctm   
+    let posicionActual = (fst newPos, snd newPos)
+    if obtenerCelda mapa posicionActual == Lava
+        then putStrLn "moriste"
+        else do
+            let preMapa = changeValueMap (x, y) Camino mapa
+            let newMapa = changeValueMap (fst newPos, snd newPos) Jugador preMapa
+            loop newMapa newPos n m
 
 changeValueMap :: (Int, Int) -> Celda -> Mapa -> Mapa
 changeValueMap (r, c) value (Mapa matriz) =
@@ -83,3 +84,5 @@ changeValueList :: Int -> a -> [a] -> [a]
 changeValueList 0 value (x:xs) = (value:xs)
 changeValueList i value (x:xs) =  x:(changeValueList (i-1) (value) (xs))
 
+obtenerCelda :: Mapa -> (Int, Int) -> Celda
+obtenerCelda (Mapa matriz) (x, y) = (matriz !! x) !! y

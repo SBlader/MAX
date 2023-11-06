@@ -12,24 +12,44 @@ instance Show Celda where
     show Jugador = "@"
     show Tesoro = "x"
 
-newtype Mapa = Mapa [[Celda]]
-instance Show Mapa where
+newtype Mapa c = Mapa [[c]]
+instance (Show c) => Show (Mapa c) where
     show (Mapa mapa) = unlines (unwords <$> map (fmap show) mapa)
 
+
 -- Generador de mapa caminable
-generarMapaCaminable :: Int -> Int -> Mapa
+generarMapaCaminable :: Int -> Int -> Mapa Celda
 generarMapaCaminable n m = Mapa $ replicate n (replicate m Camino)
+
+
+
+chunksLava :: [[Int -> Int]]
+chunksLava = [[succ,pred,id],[succ,id],[pred,id]]
 
 genLava :: (Int,Int) -> [(Int,Int)] -> Int -> StdGen -> [(Int,Int)]
 genLava _ posiciones 0 _ = posiciones
 genLava (ancho,largo) posiciones n gen =
-    let variaciones = [[succ,id],[id,succ,pred],[id,pred]] !! fst (randomR (0,2) gen) in
-        genLava (ancho,largo) ([(f x,g y) | f <- variaciones, g <- variaciones] ++ posiciones) (n-1) nextGen
+    let variacion = chunksLava !! fst (randomR (0,2) gen) in
+        genLava (ancho,largo) ([(f x, g y) | f <- variacion, g <- variacion] ++ posiciones) (n-1) nextGen
     where
-        (x,y,nextGen) = (fst $ randomR (1,ancho-1) nextGen, fst $ randomR (1,largo) gen, snd $ split gen)
+        (x,y,nextGen) = (fst $ randomR (1,ancho-1) gen, fst $ randomR (1,largo-1) nextGen, nextRandom gen)
+
+chunksObstaculos :: (Num b, Eq b) => b -> b -> [[(b, b)]]
+chunksObstaculos x y = [
+    [(x+1,y),(x,y),(x-1,y)],
+    [(x,y+1),(x,y),(x,y-1)]
+    ]
+
+genObstaculos :: (Int,Int) -> [(Int,Int)] -> Int -> StdGen -> [(Int,Int)]
+genObstaculos _ posiciones 0 _ = posiciones
+genObstaculos (ancho,largo) posiciones n gen =
+    genObstaculos (ancho,largo) (chunksObstaculos x y !! fst (randomR (0, (+ (-1)) $ length $ chunksObstaculos undefined undefined ) gen) ++ posiciones) (n-1) nextGen
+    where
+        (x,y,nextGen) = (fst $ randomR (1,ancho-1) gen, fst $ randomR (1,largo-1) nextGen, nextRandom gen)
+
 
 -- codigo con el cochino chatgpt
-cambiarCelda :: Mapa -> (Int, Int) -> Celda -> Mapa
+cambiarCelda :: Mapa Celda -> (Int, Int) -> Celda -> Mapa Celda
 cambiarCelda (Mapa mapa) (x, y) nuevaCelda =
     let (arriba, resto) = splitAt y mapa in
         if null resto then Mapa mapa
@@ -43,48 +63,53 @@ cambiarFila fila x nuevaCelda =
         if length despues <= 1 then antes ++ [nuevaCelda]
         else antes ++ [nuevaCelda] ++ tail despues
 
+
 main :: IO ()
 main = do
+    clearScreen
+    putStrLn "___  ___  ___  __   __"
+    putStrLn "|  \\/  | / _ \\ \\ \\ / /"
+    putStrLn "| .  . |/ /_\\ \\ \\ V /" 
+    putStrLn "| |\\/| ||  _  | /   \\" 
+    putStrLn "| |  | || | | |/ /^\\ \\"
+    putStrLn "\\_|  |_/\\_| |_/\\/   \\/"
     putStrLn "Coloque un n:"
     nStr <- getLine
+    let numeroRandom = 42
+    let rand = mkStdGen numeroRandom
     let n = read nStr-1 :: Int
     let mapa = generarMapaCaminable (n+1) (n+1)
     let cantidadPozos = round (1.5 * fromIntegral n) :: Int
-    let numeroRandom = 10
+    let cantidadObstaculos = 3 * round (1.5 * fromIntegral n) :: Int
     putStrLn "Mapa actualizado: "
-    let mapaConLava = foldr (\(x, y) acc -> cambiarCelda acc (x, y) Lava) mapa (genLava (n, n) [] cantidadPozos (mkStdGen numeroRandom))
+    let mapaConObstaculos = foldr (\(x, y) acc -> cambiarCelda acc (x, y) Obstaculo) mapa (genObstaculos (n,n) [] cantidadObstaculos rand)
+    let mapaConLava = foldr (\(x, y) acc -> cambiarCelda acc (x, y) Lava) mapaConObstaculos (genLava (n, n) [] cantidadPozos (nextRandom rand)) 
     loop mapaConLava (0, 0) n n
 
-loop :: Mapa -> (Int, Int) -> Int -> Int -> IO ()
+nextRandom :: StdGen -> StdGen
+nextRandom gen = snd $ split gen
+
+loop :: Mapa Celda -> (Int, Int) -> Int -> Int -> IO ()
 loop mapa (x,y) n m = do
     clearScreen
-    print mapa
+    let playerMapa = cambiarCelda mapa (x,y) Jugador
+    print playerMapa
     mov <- getChar
     let newPos = case mov of
-            'w' -> (max 0 (min n (x - 1)), y)
-            's' -> (max 0 (min n (x + 1)), y)
-            'a' -> (x, max 0 (min m (y - 1)))
-            'd' -> (x, max 0 (min m (y + 1)))
+            'w' -> (x, max 0 (min m (y - 1)))
+            's' -> (x, max 0 (min m (y + 1))) 
+            'a' -> (max 0 (min n (x - 1)), y)
+            'd' -> (max 0 (min n (x + 1)), y)
             _   -> (x,y)
             -- r -> reiniciar el mapa
     -- if mapa[head newPos][last newPos] == Lava Then Chao ctm   
-    let posicionActual = (fst newPos, snd newPos)
-    if obtenerCelda mapa posicionActual == Lava
+    if obtenerCelda mapa newPos == Lava
         then putStrLn "moriste"
-    -- else if obtenerCelda mapa posicionActual == Muro
-    --         loop newMapa (x,y) n m
+    else if obtenerCelda mapa newPos == Obstaculo
+            then loop mapa (x,y) n m
     else do
-        let preMapa = changeValueMap (x, y) Camino mapa
-        let newMapa = changeValueMap (fst newPos, snd newPos) Jugador preMapa
+        let newMapa = cambiarCelda mapa (x,y) Camino
         loop newMapa newPos n m
 
-changeValueMap :: (Int, Int) -> Celda -> Mapa -> Mapa
-changeValueMap (r, c) value (Mapa matriz) =
-    Mapa (changeValueList r (changeValueList c value (matriz !! r)) matriz)
-
-changeValueList :: Int -> a -> [a] -> [a]
-changeValueList 0 value (x:xs) = (value:xs)
-changeValueList i value (x:xs) =  x:(changeValueList (i-1) (value) (xs))
-
-obtenerCelda :: Mapa -> (Int, Int) -> Celda
-obtenerCelda (Mapa matriz) (x, y) = (matriz !! x) !! y
+obtenerCelda :: Mapa Celda -> (Int, Int) -> Celda
+obtenerCelda (Mapa matriz) (x, y) = (matriz !! y) !! x

@@ -104,7 +104,14 @@ loop mapa (x,y) n m = do
             -- r -> reiniciar el mapa
     -- if mapa[head newPos][last newPos] == Lava Then Chao ctm   
     if obtenerCelda mapa newPos == Lava
-        then putStrLn "moriste"
+        then do
+            clearScreen
+            putStrLn "__   _______ _   _  ______ _____ ___________ "
+            putStrLn "\\ \\ / /  _  | | | | |  _  \\_   _|  ___|  _  \\"
+            putStrLn " \\ V /| | | | | | | | | | | | | | |__ | | | |"
+            putStrLn "  \\  / | | | | | | | | | | | | | |  __|| | | |"
+            putStrLn "  | | \\ \\_/ / |_| | | |/ / _| |_| |___| |/ /" 
+            putStrLn "  \\_/  \\___/ \\___/  |___/  \\___/\\____/|___/  "
     else if obtenerCelda mapa newPos == Obstaculo
             then loop mapa (x,y) n m
     else do

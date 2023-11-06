@@ -49,8 +49,8 @@ main = do
     nStr <- getLine
     putStrLn "Coloque un m:"
     mStr <- getLine
-    let n = read nStr :: Int
-    let m = read mStr :: Int
+    let n = read nStr-1 :: Int
+    let m = read mStr-1:: Int
     let mapa = generarMapaCaminable n m
     let cantidadPozos = round (0.08 * fromIntegral (n*m)) :: Int
     let numeroRandom = 10
@@ -65,8 +65,8 @@ loop mapa pos n m = do
     print pos
     mov <- getChar
     let newPos = case mov of
-            'w' -> [max 0 (min (n-1) (head pos - 1)), last pos]
-            's' -> [max 0 (min (n-1) (head pos + 1)), last pos]
+            'w' -> [max 0 (min n (head pos - 1)), last pos]
+            's' -> [max 0 (min n (head pos + 1)), last pos]
             'a' -> [head pos, max 0 (min (m-1) (last pos - 1))]
             'd' -> [head pos, max 0 (min (m-1) (last pos + 1))]
             _   -> pos

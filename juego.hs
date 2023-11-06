@@ -71,10 +71,12 @@ loop mapa (x,y) n m = do
     let posicionActual = (fst newPos, snd newPos)
     if obtenerCelda mapa posicionActual == Lava
         then putStrLn "moriste"
-        else do
-            let preMapa = changeValueMap (x, y) Camino mapa
-            let newMapa = changeValueMap (fst newPos, snd newPos) Jugador preMapa
-            loop newMapa newPos n m
+    else if obtenerCelda mapa posicionActual == Muro
+            loop newMapa (x,y) n m
+    else do
+        let preMapa = changeValueMap (x, y) Camino mapa
+        let newMapa = changeValueMap (fst newPos, snd newPos) Jugador preMapa
+        loop newMapa newPos n m
 
 changeValueMap :: (Int, Int) -> Celda -> Mapa -> Mapa
 changeValueMap (r, c) value (Mapa matriz) =

@@ -1,4 +1,4 @@
-module MapGen (Celda(..), Mapa(..),generarMapaCaminable, chunksLava, genLava, chunksObstaculos, genObstaculos, cambiarCelda, nextRandom) where 
+module MapGen (Celda(..), Mapa(..),generarMapaCaminable, chunksLava, chunksObstaculos, cambiarCelda, nextRandom, genChunk) where 
 
     import System.Process
     import System.Random
@@ -18,18 +18,14 @@ module MapGen (Celda(..), Mapa(..),generarMapaCaminable, chunksLava, genLava, ch
     generarMapaCaminable :: Int -> Int -> Mapa Celda
     generarMapaCaminable n m = Mapa $ replicate n (replicate m Camino)
 
-    chunksLava :: [[Int -> Int]]
-    chunksLava = [[succ,pred,id],[succ,id],[pred,id]]
+    chunksLava :: Int -> Int -> [[(Int,Int)]] 
+    chunksLava x y = [
+        [(x+i, y+j) | i<-[-1..1], j<-[-1..1]],
+        [(x+i,y+j) | i<-[-1,0],j<-[-1,0]], 
+        [(x+i, y+j) | i<-[0,1], j<-[0,1]]
+        ]
 
-    genLava :: (Int,Int) -> [(Int,Int)] -> Int -> StdGen -> [(Int,Int)]
-    genLava _ posiciones 0 _ = posiciones
-    genLava (ancho,largo) posiciones n gen =
-        let variacion = chunksLava !! fst (randomR (0,2) gen) in
-            genLava (ancho,largo) ([(f x, g y) | f <- variacion, g <- variacion] ++ posiciones) (n-1) nextGen
-        where
-            (x,y,nextGen) = (fst $ randomR (1,ancho-1) gen, fst $ randomR (1,largo-1) nextGen, nextRandom gen)
-
-    chunksObstaculos :: (Num b, Eq b) => b -> b -> [[(b, b)]]
+    chunksObstaculos :: Int -> Int -> [[(Int,Int)]]
     chunksObstaculos x y = [
         [(x+1,y),(x,y),(x-1,y)],
         [(x,y+1),(x,y),(x,y-1)]
@@ -42,10 +38,10 @@ module MapGen (Celda(..), Mapa(..),generarMapaCaminable, chunksLava, genLava, ch
             if length despues <= 1 then antes ++ [nuevaCelda]
             else antes ++ [nuevaCelda] ++ tail despues
 
-    genObstaculos :: (Int,Int) -> [(Int,Int)] -> Int -> StdGen -> [(Int,Int)]
-    genObstaculos _ posiciones 0 _ = posiciones
-    genObstaculos (ancho,largo) posiciones n gen =
-        genObstaculos (ancho,largo) (chunksObstaculos x y !! fst (randomR (0, (+ (-1)) $ length $ chunksObstaculos undefined undefined ) gen) ++ posiciones) (n-1) nextGen
+    genChunk :: (Int,Int) -> [(Int,Int)] -> Int -> StdGen -> (Int -> Int -> [[(Int,Int)]]) -> [(Int,Int)]
+    genChunk _ posiciones 0 _ _ = posiciones
+    genChunk (ancho,largo) posiciones n gen chunksGen =
+        genChunk (ancho,largo) (chunksGen x y !! fst (randomR (0, (+ (-1)) $ length $ chunksGen undefined undefined ) gen) ++ posiciones) (n-1) nextGen chunksGen
         where
             (x,y,nextGen) = (fst $ randomR (1,ancho-1) gen, fst $ randomR (1,largo-1) nextGen, nextRandom gen)
 

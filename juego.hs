@@ -23,8 +23,8 @@ main = do
     let cantidadObstaculos = 3 * round (1.5 * fromIntegral n) :: Int
     putStrLn "Mapa actualizado: "
     let mapa = generarMapaCaminable (n+1) (n+1)
-    let mapaConObstaculos = foldr (\(x, y) acc -> cambiarCelda acc (x, y) Obstaculo) mapa (genObstaculos (n,n) [] cantidadObstaculos rand)
-    let mapaConLava = foldr (\(x, y) acc -> cambiarCelda acc (x, y) Lava) mapaConObstaculos (genLava (n, n) [] cantidadPozos (nextRandom rand)) 
+    let mapaConObstaculos = foldr (\(x, y) acc -> cambiarCelda acc (x, y) Obstaculo) mapa (genChunk (n,n) [] cantidadObstaculos rand chunksObstaculos)
+    let mapaConLava = foldr (\(x, y) acc -> cambiarCelda acc (x, y) Lava) mapaConObstaculos (genChunk (n, n) [] cantidadPozos (nextRandom rand) chunksLava) 
     loop mapaConLava (0, 0) n n
 
 loop :: Mapa Celda -> (Int, Int) -> Int -> Int -> IO ()

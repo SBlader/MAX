@@ -32,7 +32,6 @@ module MapGen (Celda(..), Mapa(..),generarMapaCaminable, chunksLava, chunksObsta
         [(x,y+1),(x,y),(x,y-1)]
         ]
 
-    -- codigo sin chat gpt otra vez
     cambiarFila :: [Celda] -> Int -> Celda -> [Celda]
     cambiarFila fila x nuevaCelda =
         let (antes, despues) = splitAt x fila in

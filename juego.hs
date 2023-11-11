@@ -17,7 +17,7 @@ main = do
     putStrLn "| |  | || | | |/ /^\\ \\"
     putStrLn "\\_|  |_/\\_| |_/\\/   \\/"
     putStrLn "Coloque un n:"
-    let nStr = args !! 0
+    let nStr = head args
     let numeroRandom = read (args !! 1) :: Int
     let rand = mkStdGen numeroRandom
     let n = (+(-1)) $ (read nStr :: Int)

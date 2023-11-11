@@ -7,6 +7,7 @@ clearScreen = callCommand "clear"
 
 main :: IO ()
 main = do
+    args <- getArgs
     clearScreen
     putStrLn "___  ___  ___  __   __"
     putStrLn "|  \\/  | / _ \\ \\ \\ / /"
@@ -15,8 +16,8 @@ main = do
     putStrLn "| |  | || | | |/ /^\\ \\"
     putStrLn "\\_|  |_/\\_| |_/\\/   \\/"
     putStrLn "Coloque un n:"
-    nStr <- getLine
-    let numeroRandom = 42
+    let nStr = args !! 1
+    let numeroRandom = read args !! 2 :: Int
     let rand = mkStdGen numeroRandom
     let n = read nStr-1 :: Int
     let cantidadPozos = round (1.5 * fromIntegral n) :: Int

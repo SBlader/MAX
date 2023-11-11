@@ -1,6 +1,7 @@
 import System.Process
 import System.Random
 import MapGen
+import System.Environment
 
 clearScreen :: IO ()
 clearScreen = callCommand "clear"
@@ -16,10 +17,10 @@ main = do
     putStrLn "| |  | || | | |/ /^\\ \\"
     putStrLn "\\_|  |_/\\_| |_/\\/   \\/"
     putStrLn "Coloque un n:"
-    let nStr = args !! 1
-    let numeroRandom = read args !! 2 :: Int
+    let nStr = args !! 0
+    let numeroRandom = read (args !! 1) :: Int
     let rand = mkStdGen numeroRandom
-    let n = read nStr-1 :: Int
+    let n = (+(-1)) $ (read nStr :: Int)
     let cantidadPozos = round (1.5 * fromIntegral n) :: Int
     let cantidadObstaculos = 3 * round (1.5 * fromIntegral n) :: Int
     putStrLn "Mapa actualizado: "

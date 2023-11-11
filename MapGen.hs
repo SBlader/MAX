@@ -22,7 +22,8 @@ module MapGen (Celda(..), Mapa(..),generarMapaCaminable, chunksLava, chunksObsta
     chunksLava x y = [
         [(x+i, y+j) | i<-[-1..1], j<-[-1..1]],
         [(x+i,y+j) | i<-[-1,0],j<-[-1,0]], 
-        [(x+i, y+j) | i<-[0,1], j<-[0,1]]
+        [(x+i, y+j) | i<-[0,1], j<-[0,1]],
+        [(x+1,y),(x,y),(x-1,y),(x,y+1),(x,y-1)]
         ]
 
     chunksObstaculos :: Int -> Int -> [[(Int,Int)]]

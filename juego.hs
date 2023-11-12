@@ -3,7 +3,7 @@ import System.Random ( mkStdGen, StdGen, randomRs )
 import MapGen
 import System.Environment ( getArgs )
 import System.IO ( hSetBuffering, stdin, BufferMode(NoBuffering) ) 
-import Data.List ( delete )
+import Data.List ( delete, nub )
 import GHC.Float.RealFracMethods ( roundFloatInt )
 
 
@@ -35,7 +35,7 @@ main = do
     else do
         -- Leer parametros
         let (n, rand) = ((read $ args !! 0 :: Int), mkStdGen (read $ last args :: Int)) -- Extraer los argumentos
-        let (posTesoro, posRunas) = (anyPos rand n, foldl (\ acc x -> anyPos x n : acc) [] $ take ((*2) . roundFloatInt . log . fromIntegral $ (n)) $ fmap mkStdGen (randomRs (1,1000) rand)) -- Generar las posiciones de runas y el tesoro
+        let (posTesoro, posRunas) = (anyPos rand n, nub $ filter (\ x -> (/=) (0,0) x && (/=) posTesoro x) $ foldl (\ acc x -> anyPos x n : acc) [] $ take ((*2) . roundFloatInt . log . fromIntegral $ (n)) $ fmap mkStdGen (randomRs (1,1000) rand)) -- Generar las posiciones de runas y el tesoro
         let (cantidadPozos, cantidadObstaculos) = (round (fromIntegral n * fromIntegral n * 0.06) :: Int, 3 * cantidadPozos :: Int) -- Generar la cantidad de los obstaculos
         -- Generar el mapa
         let mapa = makeMapa n posRunas posTesoro cantidadPozos cantidadObstaculos rand

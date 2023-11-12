@@ -1,5 +1,5 @@
 import System.Process ( callCommand )
-import System.Random ( mkStdGen )
+import System.Random ( mkStdGen, StdGen)
 import MapGen
 import System.Environment ( getArgs )
 import System.IO ( hSetBuffering, stdin, BufferMode(NoBuffering) ) 
@@ -25,33 +25,31 @@ main = do
         let cantidadPozos = round (1.5 * fromIntegral n) :: Int
         let cantidadObstaculos = 3 * cantidadPozos :: Int
         -- Ahora se genera mapa vacio, luego se le colocan obstaculos y por ultimo lava
-        let mapaVacio = generarMapaCaminable (n) (n)
-        let mapaConObstaculos = foldr (\(x, y) acc -> cambiarCelda acc (x, y) Obstaculo) mapaVacio (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
-        let mapaConLava = foldr (\(x, y) acc -> cambiarCelda acc (x, y) Lava) mapaConObstaculos (genChunk (n, n) [] cantidadPozos (nextRandom rand) chunksLava) 
-        loop mapaConLava (0, 0) (n) n -- Iniciar Loop
+        let mapa = newMapa n cantidadPozos cantidadObstaculos rand
+        loop mapa (0, 0) (n) n cantidadPozos cantidadObstaculos rand -- Iniciar Loop
 
 
 -- Funciones auxiliares
 -- Gameloop: Dibujar, Esperar movimiento, Cambiar estado y repetir
-loop :: Mapa Celda -> (Int, Int) -> Int -> Int -> IO ()
-loop mapa (x,y) n m = do
+loop :: Mapa Celda -> (Int, Int) -> Int -> Int -> Int -> Int -> StdGen -> IO ()
+loop mapa (x,y) n m cantidadPozos cantidadLava rand= do
     clearScreen
     print (cambiarCelda mapa (x,y) Jugador)
     -- Iniciar acciones segun el movimiento
     key <- getChar
     let (action, newCelda) = (getAction (x,y) n m key, obtenerCelda mapa $ getMov action) in 
-        if (getKey action == 'r') then print "RESETEAR jaja"
+        if (getKey action == 'r') then loop (newMapa n cantidadPozos cantidadLava (nextRandom rand)) (x,y) n m cantidadPozos cantidadLava (nextRandom rand)
         else if newCelda == Lava then deadMessage -- Si vas a caminar en lava        
-        else if newCelda == Obstaculo then loop mapa (x,y) n m -- Si vas a caminar en un obstaculo
-        else loop (cambiarCelda mapa (x,y) Camino) (getMov action) n m -- Si vas a caminar sobre un suelo caminable
+        else if newCelda == Obstaculo then loop mapa (x,y) n m cantidadPozos cantidadLava rand -- Si vas a caminar en un obstaculo
+        else loop (cambiarCelda mapa (x,y) Camino) (getMov action) n m cantidadPozos cantidadLava rand-- Si vas a caminar sobre un suelo caminable
 
 -- Funciones auxiliares
 getAction :: (Int, Int) -> Int -> Int -> Char -> Action Char
 getAction (x,y) n m key 
     | key == 'w' = Action (x, max 0 (min m (y - 1))) 'w'
     | key == 'a' = Action (max 0 (min n (x - 1)), y) 'a'
-    | key == 's' =  Action (x, max 0 (min m (y + 1)))  's'
-    | key == 'd' = Action (max 0 (min n (x + 1)), y) 'd'
+    | key == 's' =  Action (x, max 0 (min (m-1) (y + 1)))  's'
+    | key == 'd' = Action (max 0 (min (n-1) (x + 1)), y) 'd'
     | otherwise = Action (x,y) key
 
 -- Obtiene el contenido de una celda del mapa
@@ -76,3 +74,6 @@ deadMessage = do
     putStrLn "  :!:    :!:  !:!  :!:  !:!     :!:  !:!  :!:  :!:       :!:  !:!  :!:  :!:"  
     putStrLn "  ::     ::::: ::  ::::: ::      :::: ::   ::   :: ::::   :::: ::   ::   ::" 
     putStrLn "   :      : :  :    : :  :      :: :  :   :    : :: ::   :: :  :   :::  :::"
+
+newMapa:: Int -> Int -> Int -> StdGen -> Mapa Celda
+newMapa n cantidadPozos cantidadObstaculos rand = Mapa $ generarMapa (n) (n) (0,0) (genChunk (n, n) [] cantidadPozos (nextRandom rand) chunksLava) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)

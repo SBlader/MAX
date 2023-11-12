@@ -1,4 +1,4 @@
-module MapGen (Celda(..), Mapa(..),generarMapaCaminable, chunksLava, chunksObstaculos, cambiarCelda, nextRandom, genChunk) where 
+module MapGen (Celda(..), Mapa(..),generarMapa, generarFilaMapa, chunksLava, chunksObstaculos, cambiarCelda, nextRandom, genChunk) where 
 
     import System.Process
     import System.Random
@@ -15,9 +15,22 @@ module MapGen (Celda(..), Mapa(..),generarMapaCaminable, chunksLava, chunksObsta
     instance (Show c) => Show (Mapa c) where
         show (Mapa mapa) = unlines (unwords <$> map (fmap show) mapa)
 
-    generarMapaCaminable :: Int -> Int -> Mapa Celda
-    generarMapaCaminable n m = Mapa $ replicate n (replicate m Camino)
+-- Genera el mapa
+    generarMapa :: Int -> Int -> (Int,Int) -> [(Int,Int)]  -> [(Int,Int)] -> [[Celda]]
+    generarMapa n m (x,y) lav obs
+        |m==0 = []
+        |otherwise = generarFilaMapa n (x,y) lav obs : generarMapa n (m-1) (x,y+1) lav obs
 
+-- Genera filas para el mapa, si la posicion esta en la lista de posos de lava la celda es lava, si esta en la lista de obstaculos es obstaculo
+-- y si no es camino.
+    generarFilaMapa:: Int -> (Int,Int) -> [(Int,Int)]  -> [(Int,Int)] -> [Celda]
+    generarFilaMapa n (x,y) lav obs
+        |n==0 = []
+        |elem (x,y) lav == True = Lava : generarFilaMapa (n-1) (x+1,y) lav obs
+        |elem (x,y) obs == True = Obstaculo : generarFilaMapa (n-1) (x+1,y) lav obs
+        |otherwise = Camino : generarFilaMapa (n-1) (x+1,y) lav obs
+
+-- Genera las posiciones de los pozos de lava que estaran en el mapa
     chunksLava :: Int -> Int -> [[(Int,Int)]] 
     chunksLava x y = [
         [(x+i, y+j) | i<-[-1..1], j<-[-1..1]],
@@ -26,6 +39,7 @@ module MapGen (Celda(..), Mapa(..),generarMapaCaminable, chunksLava, chunksObsta
         [(x+1,y),(x,y),(x-1,y),(x,y+1),(x,y-1)]
         ]
 
+-- Genera los obstaculos que estaran en el mapa
     chunksObstaculos :: Int -> Int -> [[(Int,Int)]]
     chunksObstaculos x y = [
         [(x+1,y),(x,y),(x-1,y)],

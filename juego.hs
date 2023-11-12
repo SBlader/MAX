@@ -8,7 +8,10 @@ import GHC.Float.RealFracMethods
 -- Estructura para recibir la entrada
 data Action k = Action {getMov::(Int,Int), getKey::k}
 
-data Score x = Score x | Nada deriving Show
+data Score x = Score x | Nada
+instance (Show a) => Show (Score a) where
+    show (Score x) = "Tienes " ++ show x ++ " gemas!\n"
+    show (Nada) = "No tienes ninguna gema todavia!\n"
 
 instance Functor Score where
     fmap _ Nada = Nada

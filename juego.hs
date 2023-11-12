@@ -35,12 +35,15 @@ main = do
     else do
         -- Leer parametros
         let (n, rand) = ((read $ args !! 0 :: Int), mkStdGen (read $ last args :: Int)) -- Extraer los argumentos
-        let (posTesoro, posRunas) = (anyPos rand n, nub $ filter (\ x -> (/=) (0,0) x && (/=) posTesoro x) $ foldl (\ acc x -> anyPos x n : acc) [] $ take ((*2) . roundFloatInt . log . fromIntegral $ (n)) $ fmap mkStdGen (randomRs (1,1000) rand)) -- Generar las posiciones de runas y el tesoro
-        let (cantidadPozos, cantidadObstaculos) = (round (fromIntegral n * fromIntegral n * 0.06) :: Int, 3 * cantidadPozos :: Int) -- Generar la cantidad de los obstaculos
-        -- Generar el mapa
-        let mapa = makeMapa n posRunas posTesoro cantidadPozos cantidadObstaculos rand
-        loop Nada mapa (0, 0) posRunas posTesoro n n cantidadPozos cantidadObstaculos (strongRandom 100 rand) -- Iniciar Loop
-    
+        if (n <= 4) then -- Si el mapa es muy chico, es mejor pedir generar de nuevo
+            putStrLn "Por favor escoge un n mayor o igual a 4 para tener una buena experiencia de juego..." 
+        else do 
+            let (posTesoro, posRunas) = (genTesoro rand n, nub $ filter (\ x -> (/=) (0,0) x && (/=) posTesoro x) $ foldl (\ acc x -> anyPos x n : acc) [] $ take ((*2) . roundFloatInt . log . fromIntegral $ (n)) $ fmap mkStdGen (randomRs (1,1000) rand)) -- Generar las posiciones de runas y el tesoro
+            let (cantidadPozos, cantidadObstaculos) = (round (fromIntegral n * fromIntegral n * 0.06) :: Int, 3 * cantidadPozos :: Int) -- Generar la cantidad de los obstaculos
+            -- Generar el mapa
+            let mapa = makeMapa n posRunas posTesoro cantidadPozos cantidadObstaculos rand
+            loop Nada mapa (0, 0) posRunas posTesoro n n cantidadPozos cantidadObstaculos (strongRandom 100 rand) -- Iniciar Loop
+        
 -- Gameloop: Dibujar, Esperar movimiento, Cambiar estado y repetir
 loop :: Score Int -> Mapa Celda -> (Int, Int) -> [(Int,Int)] -> (Int, Int) -> Int -> Int -> Int -> Int -> StdGen -> IO ()
 loop score mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand = do
@@ -54,11 +57,9 @@ loop score mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand = do
     -- Iniciar acciones segun el movimiento
     key <- getChar
     let (action, newCelda) = (getAction (x,y) n m key, obtenerCelda mapa $ getMov action) in 
-        if (getKey action == 'r') then loop score (makeMapa n posRunas tesoro cantidadPozos cantidadLava (strongRandom 50 rand)) (x,y) posRunas tesoro n m cantidadPozos cantidadLava (strongRandom 100 rand) -- Reintentar
-        else if (getKey action == 'h') then do -- Menu ayuda
-            help                                                                        --Ve los controles
-            loop score mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand
-        else if newCelda == Runa then loop ((*2) <$> (if isNada score then Score 1 else score)) mapa (getMov action) (delete (getMov action) posRunas) tesoro n m cantidadPozos cantidadLava rand -- Si llegas a una runa score = score*2
+        if getKey action == 'r' then loop score (makeMapa n posRunas tesoro cantidadPozos cantidadLava (strongRandom 50 rand)) (x,y) posRunas tesoro n m cantidadPozos cantidadLava (strongRandom 100 rand) -- Reintentar
+        else if getKey action == 'h' then do help; loop score mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand -- Menu de ayuda luego itera nuevamente
+        else if newCelda == Runa then loop ((*2) <$> (if isNada score then Score 1 else score)) (cambiarCelda mapa (x,y) Camino) (getMov action) (delete (getMov action) posRunas) tesoro n m cantidadPozos cantidadLava rand -- Si llegas a una runa score = score*2
         else if newCelda == Lava then deathMessage -- Si vas a pisar lava     
         else if newCelda == Obstaculo && length posRunas /= 0 then loop score mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand -- Si vas a chocar con un obstaculo
         else if newCelda == Tesoro then winMessage $ (\ x -> round $ (*) (log (fromIntegral n)) (fromIntegral x)) <$> score -- Si llegas al tesoro
@@ -75,8 +76,13 @@ getAction (x,y) n m key
     | key == 'd' = Action (max 0 (min (n-1) (x + 1)), y) 'd'
     | otherwise = Action (x,y) key
 
+-- Genera cualquier posicion
 anyPos :: StdGen -> Int -> (Int, Int)
 anyPos gen n = ((\[x,y] -> (x,y)) (take 2 $ randomRs (0, (n - 1)) gen))
+
+-- Genera la posicion del tesoro (Hasta que sea distinta de 0,0)
+genTesoro :: StdGen -> Int -> (Int, Int)
+genTesoro gen n = let newPos = anyPos gen n in if (newPos == (0,0)) then genTesoro (nextRandom gen) n else newPos 
 
 -- Obtiene el contenido de una celda del mapa
 obtenerCelda :: Mapa Celda -> (Int, Int) -> Celda
@@ -136,8 +142,8 @@ winMessage score = do
 -- Funcion generadora de mapa, que cambia la generacion segun el tamano del mapa
 makeMapa :: Int -> [(Int, Int)] -> (Int, Int) -> Int -> Int -> StdGen -> Mapa Celda
 makeMapa n runas tesoro cantidadPozos cantidadObstaculos rand
-    | n > 10 = Mapa $ generarMapa n n (0,0) runas tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) chunksLava) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
-    | n <= 10 = Mapa $ generarMapa n n (0,0) runas tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) (chunksLavaSmall rand)) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
+    | n >= 10 = Mapa $ generarMapa n n (0,0) runas tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) chunksLava) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
+    | n < 10 = Mapa $ generarMapa n n (0,0) runas tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) (chunksLavaSmall rand)) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
 
 -- Itera sobre el random para generar mas diferencias
 strongRandom :: Int -> StdGen -> StdGen

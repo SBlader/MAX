@@ -1,4 +1,4 @@
-module MapGen (Celda(..), Mapa(..),generarMapa, generarFilaMapa, chunksLava, chunksObstaculos, cambiarCelda, nextRandom, genChunk) where 
+module MapGen (Celda(..), Mapa(..),generarMapa, generarFilaMapa, chunksLava, chunksLavaSmall, chunksObstaculos, cambiarCelda, nextRandom, genChunk) where 
 
     import System.Process
     import System.Random
@@ -39,6 +39,12 @@ module MapGen (Celda(..), Mapa(..),generarMapa, generarFilaMapa, chunksLava, chu
         [(x+i,y+j) | i<-[-1,0],j<-[-1,0]], 
         [(x+i, y+j) | i<-[0,1], j<-[0,1]],
         [(x+1,y),(x,y),(x-1,y),(x,y+1),(x,y-1)]
+        ]
+
+    chunksLavaSmall :: StdGen -> Int -> Int -> [[(Int,Int)]] 
+    chunksLavaSmall rand x y = [
+        [(x+1,y),(x,y),(x-1,y),(x,y+1),(x,y-1)],
+        [(\(x, y)->(((fst $ randomR (-1, 1) rand)+x), ((fst $ randomR (-1, 1) rand)+y)))(x, y)]
         ]
 
 -- Genera la forma de los obstaculos tendiendo a hacer murallas.

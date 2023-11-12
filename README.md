@@ -11,6 +11,6 @@ Obstaculos:
 
 Además hay runas (λ) las cuales aumentan tu puntaje y si las juntas todas podrás destruir los muros que se interpongan en tu camino. Para jugar debe seguir las siguientes instrucciones:
 
-Compilar con el comando make. Ejecutar en consola de la manera "./max " (la mazmorra es de tamaño n x n)
+Compilar con el comando make. Ejecutar en consola de la manera "./max <n> <semilla>" (la mazmorra es de tamaño n x n y la semilla se utiliza para las generaciones aleatorias.)
 
 Informe detallado del desarrollo: https://docs.google.com/document/d/1nxFCWwiJ5aZqH9BCWt1dVaGc5m8-QI66WSb3F5ytZoc/edit?usp=sharing

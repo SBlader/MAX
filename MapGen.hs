@@ -16,19 +16,20 @@ module MapGen (Celda(..), Mapa(..),generarMapa, generarFilaMapa, chunksLava, chu
         show (Mapa mapa) = unlines (unwords <$> map (fmap show) mapa)
 
 -- Genera el mapa
-    generarMapa :: Int -> Int -> (Int,Int) -> [(Int,Int)]  -> [(Int,Int)] -> [[Celda]]
-    generarMapa n m (x,y) lav obs
+    generarMapa :: Int -> Int -> (Int,Int) -> (Int,Int) -> [(Int,Int)]  -> [(Int,Int)] -> [[Celda]]
+    generarMapa n m (x,y) tesoro lav obs
         |m==0 = []
-        |otherwise = generarFilaMapa n (x,y) lav obs : generarMapa n (m-1) (x,y+1) lav obs
+        |otherwise = generarFilaMapa n (x,y) tesoro lav obs : generarMapa n (m-1) (x,y+1) tesoro lav obs
 
 -- Genera filas para el mapa, si la posicion esta en la lista de posos de lava la celda es lava, si esta en la lista de obstaculos es obstaculo
 -- y si no es camino.
-    generarFilaMapa:: Int -> (Int,Int) -> [(Int,Int)]  -> [(Int,Int)] -> [Celda]
-    generarFilaMapa n (x,y) lav obs
+    generarFilaMapa:: Int -> (Int,Int) -> (Int,Int) -> [(Int,Int)]  -> [(Int,Int)] -> [Celda]
+    generarFilaMapa n (x,y) tesoro lav obs
         |n==0 = []
-        |elem (x,y) lav == True = Lava : generarFilaMapa (n-1) (x+1,y) lav obs
-        |elem (x,y) obs == True = Obstaculo : generarFilaMapa (n-1) (x+1,y) lav obs
-        |otherwise = Camino : generarFilaMapa (n-1) (x+1,y) lav obs
+        |(x,y)==tesoro = Tesoro: generarFilaMapa (n-1) (x+1,y) tesoro lav obs
+        |elem (x,y) lav == True = Lava : generarFilaMapa (n-1) (x+1,y) tesoro lav obs
+        |elem (x,y) obs == True = Obstaculo : generarFilaMapa (n-1) (x+1,y) tesoro lav obs
+        |otherwise = Camino : generarFilaMapa (n-1) (x+1,y) tesoro lav obs
 
 -- Genera las posiciones de los pozos de lava que estaran en el mapa
     chunksLava :: Int -> Int -> [[(Int,Int)]] 

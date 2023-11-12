@@ -3,13 +3,14 @@ module MapGen (Celda(..), Mapa(..),generarMapa, generarFilaMapa, chunksLava, chu
     import System.Process
     import System.Random
 -- Celda es un tipo creado para definir los estados que puede tener una celda en el juego.
-    data Celda = Obstaculo | Camino | Lava | Jugador | Tesoro deriving Eq
+    data Celda = Obstaculo | Camino | Lava | Jugador | Tesoro | Runas deriving Eq
     instance Show Celda where
         show Obstaculo = "L"
         show Camino = " "
         show Lava = "$"
         show Jugador = "@"
         show Tesoro = "x"
+        show Runas = "λ"
 
 -- Mapa es un tipo creado para poder imprimir la lista de listas ademas de hacer mas entendible el codigo.
     newtype Mapa c = Mapa [[c]]
@@ -19,18 +20,18 @@ module MapGen (Celda(..), Mapa(..),generarMapa, generarFilaMapa, chunksLava, chu
 -- Genera el mapa con todos los obstaculos y pozos de lava.
     generarMapa :: Int -> Int -> (Int,Int) -> (Int,Int) -> [(Int,Int)]  -> [(Int,Int)] -> [[Celda]]
     generarMapa n m (x,y) tesoro lav obs
-        |m==0 = []
-        |otherwise = generarFilaMapa n (x,y) tesoro lav obs : generarMapa n (m-1) (x,y+1) tesoro lav obs
+        | m == 0 = []
+        | otherwise = generarFilaMapa n (x,y) tesoro lav obs : generarMapa n (m-1) (x,y+1) tesoro lav obs
 
 -- Genera filas para el mapa, si la posicion esta en la lista de posos de lava la celda es lava, si esta en la lista de obstaculos es obstaculo
 -- y si no es camino.
     generarFilaMapa :: Int -> (Int,Int) -> (Int,Int) -> [(Int,Int)]  -> [(Int,Int)] -> [Celda]
     generarFilaMapa n (x,y) tesoro lav obs
-        |n==0 = []
-        |(x,y)==tesoro = Tesoro: generarFilaMapa (n-1) (x+1,y) tesoro lav obs
-        |elem (x,y) lav == True = Lava : generarFilaMapa (n-1) (x+1,y) tesoro lav obs
-        |elem (x,y) obs == True = Obstaculo : generarFilaMapa (n-1) (x+1,y) tesoro lav obs
-        |otherwise = Camino : generarFilaMapa (n-1) (x+1,y) tesoro lav obs
+        | n == 0 = []
+        | (x, y) == tesoro = Tesoro: generarFilaMapa (n-1) (x+1,y) tesoro lav obs
+        | elem (x, y) lav == True = Lava : generarFilaMapa (n-1) (x+1,y) tesoro lav obs
+        | elem (x, y) obs == True = Obstaculo : generarFilaMapa (n-1) (x+1,y) tesoro lav obs
+        | otherwise = Camino : generarFilaMapa (n-1) (x+1,y) tesoro lav obs
 
 -- Genera la forma de la lava tendiendo a hacer pozos.
     chunksLava :: Int -> Int -> [[(Int,Int)]] 

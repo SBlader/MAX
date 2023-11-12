@@ -26,22 +26,22 @@ main = do
         let cantidadObstaculos = 3 * cantidadPozos :: Int
         -- Ahora se genera mapa vacio, luego se le colocan obstaculos y por ultimo lava
         let mapa = newMapa n cantidadPozos cantidadObstaculos rand
-        loop mapa (0, 0) (n) n cantidadPozos cantidadObstaculos (strongRandom 100 rand) -- Iniciar Loop
+        loop mapa (0, 0) (mkStdGen n, mkStdGen n) (n) n cantidadPozos cantidadObstaculos (strongRandom 100 rand) -- Iniciar Loop
 
 
 -- Funciones auxiliares
 -- Gameloop: Dibujar, Esperar movimiento, Cambiar estado y repetir
-loop :: Mapa Celda -> (Int, Int) -> Int -> Int -> Int -> Int -> StdGen -> IO ()
-loop mapa (x,y) n m cantidadPozos cantidadLava rand= do
+loop :: Mapa Celda -> (Int, Int) -> (Int, Int) -> Int -> Int -> Int -> Int -> StdGen -> IO ()
+loop mapa (x,y) tesoro n m cantidadPozos cantidadLava rand= do
     clearScreen
     print (cambiarCelda mapa (x,y) Jugador)
     -- Iniciar acciones segun el movimiento
     key <- getChar
     let (action, newCelda) = (getAction (x,y) n m key, obtenerCelda mapa $ getMov action) in 
-        if (getKey action == 'r') then loop (newMapa n cantidadPozos cantidadLava (strongRandom 50 rand)) (x,y) n m cantidadPozos cantidadLava (strongRandom 100 rand)
+        if (getKey action == 'r') then loop (newMapa n cantidadPozos cantidadLava (strongRandom 50 rand)) (x,y) tesoro n m cantidadPozos cantidadLava (strongRandom 100 rand)
         else if newCelda == Lava then deadMessage -- Si vas a caminar en lava        
-        else if newCelda == Obstaculo then loop mapa (x,y) n m cantidadPozos cantidadLava rand -- Si vas a caminar en un obstaculo
-        else loop (cambiarCelda mapa (x,y) Camino) (getMov action) n m cantidadPozos cantidadLava rand-- Si vas a caminar sobre un suelo caminable
+        else if newCelda == Obstaculo then loop mapa (x,y) tesoro n m cantidadPozos cantidadLava rand -- Si vas a caminar en un obstaculo
+        else loop (cambiarCelda mapa (x,y) Camino) (getMov action) tesoro n m cantidadPozos cantidadLava rand-- Si vas a caminar sobre un suelo caminable
 
 -- Funciones auxiliares
 getAction :: (Int, Int) -> Int -> Int -> Char -> Action Char

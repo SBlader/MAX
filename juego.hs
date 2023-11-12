@@ -26,7 +26,7 @@ main = do
         let cantidadObstaculos = 3 * cantidadPozos :: Int
         -- Ahora se genera mapa vacio, luego se le colocan obstaculos y por ultimo lava
         let mapa = newMapa n cantidadPozos cantidadObstaculos rand
-        loop mapa (0, 0) (n) n cantidadPozos cantidadObstaculos rand -- Iniciar Loop
+        loop mapa (0, 0) (n) n cantidadPozos cantidadObstaculos (strongRandom 100 rand) -- Iniciar Loop
 
 
 -- Funciones auxiliares
@@ -38,7 +38,7 @@ loop mapa (x,y) n m cantidadPozos cantidadLava rand= do
     -- Iniciar acciones segun el movimiento
     key <- getChar
     let (action, newCelda) = (getAction (x,y) n m key, obtenerCelda mapa $ getMov action) in 
-        if (getKey action == 'r') then loop (newMapa n cantidadPozos cantidadLava (nextRandom rand)) (x,y) n m cantidadPozos cantidadLava (nextRandom rand)
+        if (getKey action == 'r') then loop (newMapa n cantidadPozos cantidadLava (strongRandom 50 rand)) (x,y) n m cantidadPozos cantidadLava (strongRandom 100 rand)
         else if newCelda == Lava then deadMessage -- Si vas a caminar en lava        
         else if newCelda == Obstaculo then loop mapa (x,y) n m cantidadPozos cantidadLava rand -- Si vas a caminar en un obstaculo
         else loop (cambiarCelda mapa (x,y) Camino) (getMov action) n m cantidadPozos cantidadLava rand-- Si vas a caminar sobre un suelo caminable
@@ -77,3 +77,7 @@ deadMessage = do
 
 newMapa:: Int -> Int -> Int -> StdGen -> Mapa Celda
 newMapa n cantidadPozos cantidadObstaculos rand = Mapa $ generarMapa (n) (n) (0,0) (genChunk (n, n) [] cantidadPozos (nextRandom rand) chunksLava) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
+
+
+strongRandom :: Int -> StdGen -> StdGen
+strongRandom strength generator = foldl (\ gen _ -> nextRandom gen ) generator [1..strength]

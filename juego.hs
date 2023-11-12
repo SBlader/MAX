@@ -30,7 +30,6 @@ main = do
         loop mapa (0, 0)  posTesoro (n) n cantidadPozos cantidadObstaculos (strongRandom 100 rand) -- Iniciar Loop
 
 
--- Funciones auxiliares
 -- Gameloop: Dibujar, Esperar movimiento, Cambiar estado y repetir
 loop :: Mapa Celda -> (Int, Int) -> (Int, Int) -> Int -> Int -> Int -> Int -> StdGen -> IO ()
 loop mapa (x,y) tesoro n m cantidadPozos cantidadLava rand= do
@@ -42,12 +41,14 @@ loop mapa (x,y) tesoro n m cantidadPozos cantidadLava rand= do
         if (getKey action == 'r') then loop (newMapa n tesoro cantidadPozos cantidadLava (strongRandom 50 rand)) (x,y) tesoro n m cantidadPozos cantidadLava (strongRandom 100 rand)
         else if newCelda == Lava then deadMessage -- Si vas a caminar en lava        
         else if newCelda == Obstaculo then loop mapa (x,y) tesoro n m cantidadPozos cantidadLava rand -- Si vas a caminar en un obstaculo
-        else if newCelda == Tesoro then do
+        else if newCelda == Tesoro then do -- Si vas a caminar a la celda del tesoro
             clearScreen
             putStrLn "WIN"
         else loop (cambiarCelda mapa (x,y) Camino) (getMov action) tesoro n m cantidadPozos cantidadLava rand-- Si vas a caminar sobre un suelo caminable
 
--- Funciones auxiliares
+-- FUNCIONES AUXILIARES
+
+--Recive la accion realizada por el usuario y actualiza las coordenadas del jugador correspondientemente.
 getAction :: (Int, Int) -> Int -> Int -> Char -> Action Char
 getAction (x,y) n m key 
     | key == 'w' = Action (x, max 0 (min m (y - 1))) 'w'
@@ -79,9 +80,10 @@ deadMessage = do
     putStrLn "  ::     ::::: ::  ::::: ::      :::: ::   ::   :: ::::   :::: ::   ::   ::" 
     putStrLn "   :      : :  :    : :  :      :: :  :   :    : :: ::   :: :  :   :::  :::"
 
+-- funcion auxiliar para simplificar la generacion del mapa en otras funciones.
 newMapa :: Int -> (Int,Int) -> Int -> Int -> StdGen -> Mapa Celda
 newMapa n tesoro cantidadPozos cantidadObstaculos rand = Mapa $ generarMapa (n) (n) (0,0) tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) chunksLava) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
 
-
+-- itera multiples veces el generador para que se realicen grandes cambios al reiniciar el mapa.
 strongRandom :: Int -> StdGen -> StdGen
 strongRandom strength generator = foldl (\ gen _ -> nextRandom gen ) generator [1..strength]

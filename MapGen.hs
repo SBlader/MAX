@@ -2,7 +2,7 @@ module MapGen (Celda(..), Mapa(..),generarMapa, generarFilaMapa, chunksLava, chu
 
     import System.Process
     import System.Random
-
+-- Celda es un tipo creado para definir los estados que puede tener una celda en el juego.
     data Celda = Obstaculo | Camino | Lava | Jugador | Tesoro deriving Eq
     instance Show Celda where
         show Obstaculo = "L"
@@ -11,11 +11,12 @@ module MapGen (Celda(..), Mapa(..),generarMapa, generarFilaMapa, chunksLava, chu
         show Jugador = "@"
         show Tesoro = "x"
 
+-- Mapa es un tipo creado para poder imprimir la lista de listas ademas de hacer mas entendible el codigo.
     newtype Mapa c = Mapa [[c]]
     instance (Show c) => Show (Mapa c) where
         show (Mapa mapa) = unlines (unwords <$> map (fmap show) mapa)
 
--- Genera el mapa
+-- Genera el mapa con todos los obstaculos y pozos de lava.
     generarMapa :: Int -> Int -> (Int,Int) -> (Int,Int) -> [(Int,Int)]  -> [(Int,Int)] -> [[Celda]]
     generarMapa n m (x,y) tesoro lav obs
         |m==0 = []
@@ -31,7 +32,7 @@ module MapGen (Celda(..), Mapa(..),generarMapa, generarFilaMapa, chunksLava, chu
         |elem (x,y) obs == True = Obstaculo : generarFilaMapa (n-1) (x+1,y) tesoro lav obs
         |otherwise = Camino : generarFilaMapa (n-1) (x+1,y) tesoro lav obs
 
--- Genera las posiciones de los pozos de lava que estaran en el mapa
+-- Genera la forma de la lava tendiendo a hacer pozos.
     chunksLava :: Int -> Int -> [[(Int,Int)]] 
     chunksLava x y = [
         [(x+i, y+j) | i<-[-1..1], j<-[-1..1]],
@@ -40,19 +41,21 @@ module MapGen (Celda(..), Mapa(..),generarMapa, generarFilaMapa, chunksLava, chu
         [(x+1,y),(x,y),(x-1,y),(x,y+1),(x,y-1)]
         ]
 
--- Genera los obstaculos que estaran en el mapa
+-- Genera la forma de los obstaculos tendiendo a hacer murallas.
     chunksObstaculos :: Int -> Int -> [[(Int,Int)]]
     chunksObstaculos x y = [
         [(x+1,y),(x,y),(x-1,y)],
         [(x,y+1),(x,y),(x,y-1)]
         ]
 
+-- Una funcion de apoyo para cambiarCelda que modifica una fila.
     cambiarFila :: [Celda] -> Int -> Celda -> [Celda]
     cambiarFila fila x nuevaCelda =
         let (antes, despues) = splitAt x fila in
             if length despues <= 1 then antes ++ [nuevaCelda]
             else antes ++ [nuevaCelda] ++ tail despues
 
+-- Segun una figura, la genera multiples veces como coordenadas en un  espacio nxn.
     genChunk :: (Int,Int) -> [(Int,Int)] -> Int -> StdGen -> (Int -> Int -> [[(Int,Int)]]) -> [(Int,Int)]
     genChunk _ posiciones 0 _ _ = posiciones
     genChunk (ancho,largo) posiciones n gen chunksGen =
@@ -60,6 +63,7 @@ module MapGen (Celda(..), Mapa(..),generarMapa, generarFilaMapa, chunksLava, chu
         where
             (x,y,nextGen) = (fst $ randomR (1,ancho-1) gen, fst $ randomR (1,largo-1) nextGen, nextRandom gen)
 
+-- Modifica el mapa cuando se mueve el jugador para que la celda anerior quede como caminable.
     cambiarCelda :: Mapa Celda -> (Int, Int) -> Celda -> Mapa Celda
     cambiarCelda (Mapa mapa) (x, y) nuevaCelda =
         let (arriba, resto) = splitAt y mapa in
@@ -67,5 +71,6 @@ module MapGen (Celda(..), Mapa(..),generarMapa, generarFilaMapa, chunksLava, chu
             else if length resto == 1 then Mapa $ arriba ++ [cambiarFila (head resto) x nuevaCelda]
             else Mapa $ arriba ++ [cambiarFila (head resto) x nuevaCelda] ++ tail resto
 
+-- Itera al siguiente random del generador.
     nextRandom :: StdGen -> StdGen
     nextRandom gen = snd $ split gen

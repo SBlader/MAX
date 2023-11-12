@@ -3,25 +3,26 @@ import System.Random ( mkStdGen, StdGen, randomRs )
 import MapGen
 import System.Environment ( getArgs )
 import System.IO ( hSetBuffering, stdin, BufferMode(NoBuffering) ) 
-import GHC.Float.RealFracMethods
 import Data.List ( delete )
+import GHC.Float.RealFracMethods ( roundFloatInt )
 
+
+{- ESTRUCTURAS -}
 -- Estructura para recibir la entrada
 data Action k = Action {getMov::(Int,Int), getKey::k}
 
+-- Estructura para guardar el multiplicador
 data Score x = Score x | Nada
 instance (Show a) => Show (Score a) where
-    show (Score x) = "Tienes " ++ show x ++ " runas de poder!"
-    show (Nada) = "No tienes ninguna runa de poder."
-
+    show (Score x) = "Ganaste " ++ show x ++ " puntos, bien hecho!"
+    show (Nada) = "No tienes puntos extra..."
+-- Functor permite modificar el multiplicador
 instance Functor Score where
     fmap _ Nada = Nada
     fmap f (Score x) = Score (f x)
 
-isNada :: Score a -> Bool
-isNada Nada = True
-isNada _ = False
 
+{- FUNCIONAMIENTO -}
 -- Main inicializa los argumentos y el mapa
 main :: IO ()
 main = do
@@ -32,38 +33,39 @@ main = do
     if length args /= 2 then 
         putStrLn "Debes ingresar los argumentos (n::Tamano mapa) y (r::Int generador)"
     else do
-        clearScreen
-        print args
         -- Leer parametros
-        let (n, rand) = ((read $ args !! 0 :: Int), mkStdGen (read $ last args :: Int)) -- Generador con el numero random
-        let (posTesoro, posRunas) = (anyPos rand n, foldl (\ acc x -> anyPos x n : acc) [] $ take ((*2) . roundFloatInt . log . fromIntegral $ (n)) $ fmap mkStdGen (randomRs (1,1000) rand))
-        let (cantidadPozos, cantidadObstaculos) = (round (fromIntegral n * fromIntegral n * 0.06) :: Int, 3 * cantidadPozos :: Int)
-        -- Ahora se genera mapa vacio, luego se le colocan obstaculos y por ultimo lava
+        let (n, rand) = ((read $ args !! 0 :: Int), mkStdGen (read $ last args :: Int)) -- Extraer los argumentos
+        let (posTesoro, posRunas) = (anyPos rand n, foldl (\ acc x -> anyPos x n : acc) [] $ take ((*2) . roundFloatInt . log . fromIntegral $ (n)) $ fmap mkStdGen (randomRs (1,1000) rand)) -- Generar las posiciones de runas y el tesoro
+        let (cantidadPozos, cantidadObstaculos) = (round (fromIntegral n * fromIntegral n * 0.06) :: Int, 3 * cantidadPozos :: Int) -- Generar la cantidad de los obstaculos
+        -- Generar el mapa
         let mapa = makeMapa n posRunas posTesoro cantidadPozos cantidadObstaculos rand
         loop Nada mapa (0, 0) posRunas posTesoro n n cantidadPozos cantidadObstaculos (strongRandom 100 rand) -- Iniciar Loop
     
-
 -- Gameloop: Dibujar, Esperar movimiento, Cambiar estado y repetir
 loop :: Score Int -> Mapa Celda -> (Int, Int) -> [(Int,Int)] -> (Int, Int) -> Int -> Int -> Int -> Int -> StdGen -> IO ()
 loop score mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand = do
+    -- Dibujar la pantalla y posicionar al jugador
     clearScreen
-    print $ cambiarCelda mapa (x,y) Jugador
-    print $ if (length posRunas /= 0) then "Quedan " ++ (show . length) posRunas ++ " runas en el mapa!" else "Tienes todas las runas de poder!"
+    putStrLn $ foldr1 (\ x acc -> x ++ acc ) (replicate (((n-1) `div` 2)) "=-") ++ "MAX" ++ foldr1 (\ x acc -> x ++ acc) (replicate ((n-2) `div` 2) "-=") -- Barra superior
+    print $ cambiarCelda mapa (x,y) Jugador -- Colocar al jugador en el mapa
+    putStrLn $ replicate (2*n-1) '~' -- Barra inferior
+    putStrLn $ if (length posRunas /= 0) then " λ: Quedan " ++ (show . length) posRunas ++ " runas de poder!" else " λ: Tienes todas las runas de poder!" -- Cuantas runas quedan
+
     -- Iniciar acciones segun el movimiento
     key <- getChar
     let (action, newCelda) = (getAction (x,y) n m key, obtenerCelda mapa $ getMov action) in 
-        if (getKey action == 'r') then loop score (makeMapa n posRunas tesoro cantidadPozos cantidadLava (strongRandom 50 rand)) (x,y) posRunas tesoro n m cantidadPozos cantidadLava (strongRandom 100 rand)
-        else if (getKey action == 'h') then do
+        if (getKey action == 'r') then loop score (makeMapa n posRunas tesoro cantidadPozos cantidadLava (strongRandom 50 rand)) (x,y) posRunas tesoro n m cantidadPozos cantidadLava (strongRandom 100 rand) -- Reintentar
+        else if (getKey action == 'h') then do -- Menu ayuda
             help                                                                        --Ve los controles
             loop score mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand
-        else if newCelda == Runa then loop ((+1) <$> (if isNada score then Score 0 else score)) mapa (getMov action) (delete (getMov action) posRunas) tesoro n m cantidadPozos cantidadLava rand
-        else if newCelda == Lava then deathMessage -- Si vas a caminar en lava        
-        else if newCelda == Obstaculo && length posRunas /= 0 then loop score mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand -- Si vas a caminar en un obstaculo
-        else if newCelda == Tesoro then winMessage score -- Si vas a caminar a la celda del tesoro
-        else loop score (cambiarCelda mapa (x,y) Camino) (getMov action) posRunas tesoro n m cantidadPozos cantidadLava rand-- Si vas a caminar sobre un suelo caminable
-    
--- FUNCIONES AUXILIARES
+        else if newCelda == Runa then loop ((*2) <$> (if isNada score then Score 1 else score)) mapa (getMov action) (delete (getMov action) posRunas) tesoro n m cantidadPozos cantidadLava rand -- Si llegas a una runa score = score*2
+        else if newCelda == Lava then deathMessage -- Si vas a pisar lava     
+        else if newCelda == Obstaculo && length posRunas /= 0 then loop score mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand -- Si vas a chocar con un obstaculo
+        else if newCelda == Tesoro then winMessage $ (\ x -> round $ (*) (log (fromIntegral n)) (fromIntegral x)) <$> score -- Si llegas al tesoro
+        else loop score (cambiarCelda mapa (x,y) Camino) (getMov action) posRunas tesoro n m cantidadPozos cantidadLava rand -- Suelo caminable
 
+
+{- OTRAS FUNCIONES -}
 --Recive la accion realizada por el usuario y actualiza las coordenadas del jugador correspondientemente.
 getAction :: (Int, Int) -> Int -> Int -> Char -> Action Char
 getAction (x,y) n m key 
@@ -74,7 +76,7 @@ getAction (x,y) n m key
     | otherwise = Action (x,y) key
 
 anyPos :: StdGen -> Int -> (Int, Int)
-anyPos gen n = ((\[x,y]->(x,y)) (take 2 $ randomRs (0, (n - 1)) gen))
+anyPos gen n = ((\[x,y] -> (x,y)) (take 2 $ randomRs (0, (n - 1)) gen))
 
 -- Obtiene el contenido de una celda del mapa
 obtenerCelda :: Mapa Celda -> (Int, Int) -> Celda
@@ -83,6 +85,11 @@ obtenerCelda (Mapa matriz) (x, y) = (matriz !! y) !! x
 -- Limpia la pantalla
 clearScreen :: IO ()
 clearScreen = callCommand "clear"
+
+-- Revisa si no hay mulitplicador
+isNada :: Score a -> Bool
+isNada Nada = True
+isNada _ = False
 
 -- Devuelve el mensaje de muerte
 deathMessage :: IO ()
@@ -99,6 +106,7 @@ deathMessage = do
     putStrLn "  ::     ::::: ::  ::::: ::      :::: ::   ::   :: ::::   :::: ::   ::   ::" 
     putStrLn "   :      : :  :    : :  :      :: :  :   :    : :: ::   :: :  :   :::  :::"
 
+-- Mensaje de victoria
 winMessage :: (Show s) => Score s -> IO ()
 winMessage score = do
     clearScreen
@@ -125,17 +133,17 @@ winMessage score = do
     print score
     putStrLn "Haz conseguido el tesoro!"
 
--- funcion auxiliar para simplificar la generacion del mapa en otras funciones.
+-- Funcion generadora de mapa, que cambia la generacion segun el tamano del mapa
 makeMapa :: Int -> [(Int, Int)] -> (Int, Int) -> Int -> Int -> StdGen -> Mapa Celda
 makeMapa n runas tesoro cantidadPozos cantidadObstaculos rand
     | n > 10 = Mapa $ generarMapa n n (0,0) runas tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) chunksLava) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
     | n <= 10 = Mapa $ generarMapa n n (0,0) runas tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) (chunksLavaSmall rand)) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
 
--- itera multiples veces el generador para que se realicen grandes cambios al reiniciar el mapa.
+-- Itera sobre el random para generar mas diferencias
 strongRandom :: Int -> StdGen -> StdGen
 strongRandom strength generator = foldl (\ gen _ -> nextRandom gen ) generator [1..strength]
 
--- pantalla tutorial
+-- Pantalla inicial
 tutorial :: IO()
 tutorial = do
     clearScreen
@@ -150,8 +158,9 @@ tutorial = do
     \Estás a punto de entrar a una mazmorra llena de peligros y un abundante tesoro\n\
     \encontraras pozos de lava ($) y murallas (L) que bloquearán el camino hacia tu merecido premio\n\
     \para llegar allá puedes moverte usando las teclas W-A-S-D.\n\
-    \\nPara ayudarte en tu camino tienes un super poder, puedes hacer que la mazmorra cambie su forma de manera aleatoria \n\
+    \\nPara ayudarte en tu camino tienes un super poder, puedes hacer que la mazmorra cambie su forma de manera aleatoria, \n\
     \pero sin moverte ni tú, ni el tesoro, para usar este poder presiona la tecla R.\n\
+    \Hay runas dispersas cuyos poderes pueden permitirte potenciarte para romper los obstaculos en tu camino al reunirlas todas.\n\
     \\nNo dudes en pedir ayuda si lo necesitas, siempre puedes ver los controles con la tecla H \n\
     \\nAhora ve, valiente héroe, y reclama tu lugar entre las leyendas.\n\
     \\n\n Presiona Enter para continuar."
@@ -159,7 +168,7 @@ tutorial = do
     getLine
     clearScreen
 
--- pantalla ayuda
+-- Pantalla de ayuda
 help :: IO()
 help = do
     clearScreen

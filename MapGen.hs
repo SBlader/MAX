@@ -23,7 +23,7 @@ module MapGen (Celda(..), Mapa(..),generarMapa, generarFilaMapa, chunksLava, chu
 
 -- Genera filas para el mapa, si la posicion esta en la lista de posos de lava la celda es lava, si esta en la lista de obstaculos es obstaculo
 -- y si no es camino.
-    generarFilaMapa:: Int -> (Int,Int) -> (Int,Int) -> [(Int,Int)]  -> [(Int,Int)] -> [Celda]
+    generarFilaMapa :: Int -> (Int,Int) -> (Int,Int) -> [(Int,Int)]  -> [(Int,Int)] -> [Celda]
     generarFilaMapa n (x,y) tesoro lav obs
         |n==0 = []
         |(x,y)==tesoro = Tesoro: generarFilaMapa (n-1) (x+1,y) tesoro lav obs

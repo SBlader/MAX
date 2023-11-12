@@ -79,7 +79,7 @@ deadMessage = do
     putStrLn "  ::     ::::: ::  ::::: ::      :::: ::   ::   :: ::::   :::: ::   ::   ::" 
     putStrLn "   :      : :  :    : :  :      :: :  :   :    : :: ::   :: :  :   :::  :::"
 
-newMapa:: Int -> (Int,Int) -> Int -> Int -> StdGen -> Mapa Celda
+newMapa :: Int -> (Int,Int) -> Int -> Int -> StdGen -> Mapa Celda
 newMapa n tesoro cantidadPozos cantidadObstaculos rand = Mapa $ generarMapa (n) (n) (0,0) tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) chunksLava) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
 
 

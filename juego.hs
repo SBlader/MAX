@@ -4,18 +4,23 @@ import MapGen
 import System.Environment ( getArgs )
 import System.IO ( hSetBuffering, stdin, BufferMode(NoBuffering) ) 
 import GHC.Float.RealFracMethods
+import Data.List ( delete )
 
 -- Estructura para recibir la entrada
 data Action k = Action {getMov::(Int,Int), getKey::k}
 
 data Score x = Score x | Nada
 instance (Show a) => Show (Score a) where
-    show (Score x) = "Tienes " ++ show x ++ " runas de poder!\n"
-    show (Nada) = "No tienes ninguna runa de poder aun...\n"
+    show (Score x) = "Tienes " ++ show x ++ " runas de poder!"
+    show (Nada) = "No tienes ninguna runa de poder."
 
 instance Functor Score where
     fmap _ Nada = Nada
     fmap f (Score x) = Score (f x)
+
+isNada :: Score a -> Bool
+isNada Nada = True
+isNada _ = False
 
 -- Main inicializa los argumentos y el mapa
 main :: IO ()
@@ -35,26 +40,28 @@ main = do
         let (cantidadPozos, cantidadObstaculos) = (round (fromIntegral n * fromIntegral n * 0.06) :: Int, 3 * cantidadPozos :: Int)
         -- Ahora se genera mapa vacio, luego se le colocan obstaculos y por ultimo lava
         let mapa = makeMapa n posRunas posTesoro cantidadPozos cantidadObstaculos rand
-        loop mapa (0, 0) posRunas posTesoro n n cantidadPozos cantidadObstaculos (strongRandom 100 rand) -- Iniciar Loop
+        loop Nada mapa (0, 0) posRunas posTesoro n n cantidadPozos cantidadObstaculos (strongRandom 100 rand) -- Iniciar Loop
     
 
 -- Gameloop: Dibujar, Esperar movimiento, Cambiar estado y repetir
-loop :: Mapa Celda -> (Int, Int) -> [(Int,Int)] -> (Int, Int) -> Int -> Int -> Int -> Int -> StdGen -> IO ()
-loop mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand = do
+loop :: Score Int -> Mapa Celda -> (Int, Int) -> [(Int,Int)] -> (Int, Int) -> Int -> Int -> Int -> Int -> StdGen -> IO ()
+loop score mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand = do
     clearScreen
-    print (cambiarCelda mapa (x,y) Jugador)
+    print $ cambiarCelda mapa (x,y) Jugador
+    print $ if (length posRunas /= 0) then "Quedan " ++ (show . length) posRunas ++ " runas en el mapa!" else "Tienes todas las runas de poder!"
     -- Iniciar acciones segun el movimiento
     key <- getChar
     let (action, newCelda) = (getAction (x,y) n m key, obtenerCelda mapa $ getMov action) in 
-        if (getKey action == 'r') then loop (makeMapa n posRunas tesoro cantidadPozos cantidadLava (strongRandom 50 rand)) (x,y) posRunas tesoro n m cantidadPozos cantidadLava (strongRandom 100 rand)
+        if (getKey action == 'r') then loop score (makeMapa n posRunas tesoro cantidadPozos cantidadLava (strongRandom 50 rand)) (x,y) posRunas tesoro n m cantidadPozos cantidadLava (strongRandom 100 rand)
         else if (getKey action == 'h') then do
             help                                                                        --Ve los controles
-            loop mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand
-        else if newCelda == Lava then deadMessage -- Si vas a caminar en lava        
-        else if newCelda == Obstaculo then loop mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand -- Si vas a caminar en un obstaculo
-        else if newCelda == Tesoro then winMessage -- Si vas a caminar a la celda del tesoro
-        else loop (cambiarCelda mapa (x,y) Camino) (getMov action) posRunas tesoro n m cantidadPozos cantidadLava rand-- Si vas a caminar sobre un suelo caminable
-
+            loop score mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand
+        else if newCelda == Runa then loop ((+1) <$> (if isNada score then Score 0 else score)) mapa (getMov action) (delete (getMov action) posRunas) tesoro n m cantidadPozos cantidadLava rand
+        else if newCelda == Lava then deathMessage -- Si vas a caminar en lava        
+        else if newCelda == Obstaculo && length posRunas /= 0 then loop score mapa (x,y) posRunas tesoro n m cantidadPozos cantidadLava rand -- Si vas a caminar en un obstaculo
+        else if newCelda == Tesoro then winMessage score -- Si vas a caminar a la celda del tesoro
+        else loop score (cambiarCelda mapa (x,y) Camino) (getMov action) posRunas tesoro n m cantidadPozos cantidadLava rand-- Si vas a caminar sobre un suelo caminable
+    
 -- FUNCIONES AUXILIARES
 
 --Recive la accion realizada por el usuario y actualiza las coordenadas del jugador correspondientemente.
@@ -62,7 +69,7 @@ getAction :: (Int, Int) -> Int -> Int -> Char -> Action Char
 getAction (x,y) n m key 
     | key == 'w' = Action (x, max 0 (min m (y - 1))) 'w'
     | key == 'a' = Action (max 0 (min n (x - 1)), y) 'a'
-    | key == 's' =  Action (x, max 0 (min (m-1) (y + 1)))  's'
+    | key == 's' =  Action (x, max 0 (min (m-1) (y + 1))) 's'
     | key == 'd' = Action (max 0 (min (n-1) (x + 1)), y) 'd'
     | otherwise = Action (x,y) key
 
@@ -78,8 +85,8 @@ clearScreen :: IO ()
 clearScreen = callCommand "clear"
 
 -- Devuelve el mensaje de muerte
-deadMessage :: IO ()
-deadMessage = do
+deathMessage :: IO ()
+deathMessage = do
     clearScreen
     putStrLn "@@@ @@@   @@@@@@   @@@  @@@     @@@@@@@   @@@  @@@@@@@@  @@@@@@@   @@@  @@@  "
     putStrLn "@@@ @@@  @@@@@@@@  @@@  @@@     @@@@@@@@  @@@  @@@@@@@@  @@@@@@@@  @@@  @@@  "
@@ -92,39 +99,43 @@ deadMessage = do
     putStrLn "  ::     ::::: ::  ::::: ::      :::: ::   ::   :: ::::   :::: ::   ::   ::" 
     putStrLn "   :      : :  :    : :  :      :: :  :   :    : :: ::   :: :  :   :::  :::"
 
-winMessage :: IO ()
-winMessage = do
+winMessage :: (Show s) => Score s -> IO ()
+winMessage score = do
     clearScreen
-    putStrLn "******************************************************************************* \n\
-\          |                   |                  |                     |\n\
-\ _________|________________.=\"\"_;=.______________|_____________________|_______\n\
-\|                   |  ,-\"_,=\"\"     `\"=.|                  |\n\
-\|___________________|__\"=._o`\"-._        `\"=.______________|___________________\n\
-\          |                `\"=._o`\"=._      _`\"=._                     |\n\
-\ _________|_____________________:=._o \"=._.\"_.-=\"'\"=.__________________|_______\n\
-\|                   |    __.--\" , ; `\"=._o.\" ,-\"\"\"-._ \".   |\n\
-\|___________________|_._\"  ,. .` ` `` ,  `\"-._\"-._   \". '__|___________________\n\
-\          |           |o`\"=._` , \"` `; .\". ,  \"-._\"-._; ;              |\n\
-\ _________|___________| ;`-.o`\"=._; .\" ` '`.\"\\` . \"-._ /_______________|_______\n\
-\|                   | |o;    `\"-.o`\"=._``  '` \" ,__.--o;   |\n\
-\|___________________|_| ;     (#) `-.o `\"=.`_.--\"_o.-; ;___|___________________\n\
-\____/______/______/___|o;._    \"      `\".o|o_.--\"    ;o;____/______/______/____\n\
-\/______/______/______/_\"=._o--._        ; | ;        ; ;/______/______/______/_\n\
-\____/______/______/______/__\"=._o--._   ;o|o;     _._;o;____/______/______/____\n\
-\/______/______/______/______/____\"=._o._; | ;_.--\"o.--\"_/______/______/______/_\n\
-\____/______/______/______/______/_____\"=.o|o_.--\"\"___/______/______/______/____\n\
-\/______/______/______/______/______/______/______/______/______/______/[YOU WIN!]\n\
-\*******************************************************************************"
+    putStrLn $ "******************************************************************************* \n\
+    \          |                   |                  |                     |\n\
+    \ _________|________________.=\"\"_;=.______________|_____________________|_______\n\
+    \|                   |  ,-\"_,=\"\"     `\"=.|                  |\n\
+    \|___________________|__\"=._o`\"-._        `\"=.______________|___________________\n\
+    \          |                `\"=._o`\"=._      _`\"=._                     |\n\
+    \ _________|_____________________:=._o \"=._.\"_.-=\"'\"=.__________________|_______\n\
+    \|                   |    __.--\" , ; `\"=._o.\" ,-\"\"\"-._ \".   |\n\
+    \|___________________|_._\"  ,. .` ` `` ,  `\"-._\"-._   \". '__|___________________\n\
+    \          |           |o`\"=._` , \"` `; .\". ,  \"-._\"-._; ;              |\n\
+    \ _________|___________| ;`-.o`\"=._; .\" ` '`.\"\\` . \"-._ /_______________|_______\n\
+    \|                   | |o;    `\"-.o`\"=._``  '` \" ,__.--o;   |\n\
+    \|___________________|_| ;     (λ) `-.o `\"=.`_.--\"_o.-; ;___|___________________\n\
+    \____/______/______/___|o;._    \"      `\".o|o_.--\"    ;o;____/______/______/____\n\
+    \/______/______/______/_\"=._o--._        ; | ;        ; ;/______/______/______/_\n\
+    \____/______/______/______/__\"=._o--._   ;o|o;     _._;o;____/______/______/____\n\
+    \/______/______/______/______/____\"=._o._; | ;_.--\"o.--\"_/______/______/______/_\n\
+    \____/______/______/______/______/_____\"=.o|o_.--\"\"___/______/______/______/____\n\
+    \/______/______/______/______/______/______/______/______/______/______/_____/__\n\
+    \*******************************************************************************"
+    print score
+    putStrLn "Haz conseguido el tesoro!"
 
 -- funcion auxiliar para simplificar la generacion del mapa en otras funciones.
 makeMapa :: Int -> [(Int, Int)] -> (Int, Int) -> Int -> Int -> StdGen -> Mapa Celda
 makeMapa n runas tesoro cantidadPozos cantidadObstaculos rand
-    | n > 10 = Mapa $ generarMapa n n (0,0) tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) chunksLava) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
-    | n <= 10 = Mapa $ generarMapa n n (0,0) tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) (chunksLavaSmall rand)) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
+    | n > 10 = Mapa $ generarMapa n n (0,0) runas tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) chunksLava) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
+    | n <= 10 = Mapa $ generarMapa n n (0,0) runas tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) (chunksLavaSmall rand)) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
+
 -- itera multiples veces el generador para que se realicen grandes cambios al reiniciar el mapa.
 strongRandom :: Int -> StdGen -> StdGen
 strongRandom strength generator = foldl (\ gen _ -> nextRandom gen ) generator [1..strength]
 
+-- pantalla tutorial
 tutorial :: IO()
 tutorial = do
     clearScreen
@@ -148,6 +159,7 @@ tutorial = do
     getLine
     clearScreen
 
+-- pantalla ayuda
 help :: IO()
 help = do
     clearScreen

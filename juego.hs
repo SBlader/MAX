@@ -7,22 +7,7 @@ import Data.List ( delete, nub )
 import GHC.Float.RealFracMethods ( roundFloatInt )
 
 
-{- ESTRUCTURAS -}
--- Estructura para recibir la entrada
-data Action k = Action {getMov::(Int,Int), getKey::k}
-
--- Estructura para guardar el multiplicador
-data Score x = Score x | Nada
-instance (Show a) => Show (Score a) where
-    show (Score x) = "Ganaste " ++ show x ++ " puntos, bien hecho!"
-    show (Nada) = "No tienes puntos extra..."
--- Functor permite modificar el multiplicador
-instance Functor Score where
-    fmap _ Nada = Nada
-    fmap f (Score x) = Score (f x)
-
-
-{- FUNCIONAMIENTO -}
+{- FUNCIONAMIENTO PRINCIPAL -}
 -- Main inicializa los argumentos y el mapa
 main :: IO ()
 main = do
@@ -76,26 +61,9 @@ getAction (x,y) n m key
     | key == 'd' = Action (max 0 (min (n-1) (x + 1)), y) 'd'
     | otherwise = Action (x,y) key
 
--- Genera cualquier posicion
-anyPos :: StdGen -> Int -> (Int, Int)
-anyPos gen n = ((\[x,y] -> (x,y)) (take 2 $ randomRs (0, (n - 1)) gen))
-
--- Genera la posicion del tesoro (Hasta que sea distinta de 0,0)
-genTesoro :: StdGen -> Int -> (Int, Int)
-genTesoro gen n = let newPos = anyPos gen n in if (newPos == (0,0)) then genTesoro (nextRandom gen) n else newPos 
-
--- Obtiene el contenido de una celda del mapa
-obtenerCelda :: Mapa Celda -> (Int, Int) -> Celda
-obtenerCelda (Mapa matriz) (x, y) = (matriz !! y) !! x
-
 -- Limpia la pantalla
 clearScreen :: IO ()
 clearScreen = callCommand "clear"
-
--- Revisa si no hay mulitplicador
-isNada :: Score a -> Bool
-isNada Nada = True
-isNada _ = False
 
 -- Devuelve el mensaje de muerte
 deathMessage :: IO ()
@@ -138,16 +106,6 @@ winMessage score = do
     \*******************************************************************************"
     print score
     putStrLn "Haz conseguido el tesoro!"
-
--- Funcion generadora de mapa, que cambia la generacion segun el tamano del mapa
-makeMapa :: Int -> [(Int, Int)] -> (Int, Int) -> Int -> Int -> StdGen -> Mapa Celda
-makeMapa n runas tesoro cantidadPozos cantidadObstaculos rand
-    | n >= 10 = Mapa $ generarMapa n n (0,0) runas tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) chunksLava) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
-    | n < 10 = Mapa $ generarMapa n n (0,0) runas tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) (chunksLavaSmall rand)) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
-
--- Itera sobre el random para generar mas diferencias
-strongRandom :: Int -> StdGen -> StdGen
-strongRandom strength generator = foldl (\ gen _ -> nextRandom gen ) generator [1..strength]
 
 -- Pantalla inicial
 tutorial :: IO()

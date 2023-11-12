@@ -23,7 +23,7 @@ main = do
         let rand = mkStdGen (read $ last args :: Int) -- Generador con el numero random
         let n = (read $ args !! 0 :: Int) -- Largo mapa
         let posTesoro = ((\[x,y]->(x,y)) (take 2 $ randomRs (0,(n-1)) (mkStdGen 4)))
-        let cantidadPozos = round (1.5 * fromIntegral n) :: Int
+        let cantidadPozos = round (fromIntegral n * fromIntegral n * 0.06) :: Int
         let cantidadObstaculos = 3 * cantidadPozos :: Int
         -- Ahora se genera mapa vacio, luego se le colocan obstaculos y por ultimo lava
         let mapa = newMapa n posTesoro cantidadPozos cantidadObstaculos rand
@@ -32,7 +32,7 @@ main = do
 
 -- Gameloop: Dibujar, Esperar movimiento, Cambiar estado y repetir
 loop :: Mapa Celda -> (Int, Int) -> (Int, Int) -> Int -> Int -> Int -> Int -> StdGen -> IO ()
-loop mapa (x,y) tesoro n m cantidadPozos cantidadLava rand= do
+loop mapa (x,y) tesoro n m cantidadPozos cantidadLava rand = do
     clearScreen
     print (cambiarCelda mapa (x,y) Jugador)
     -- Iniciar acciones segun el movimiento
@@ -41,9 +41,7 @@ loop mapa (x,y) tesoro n m cantidadPozos cantidadLava rand= do
         if (getKey action == 'r') then loop (newMapa n tesoro cantidadPozos cantidadLava (strongRandom 50 rand)) (x,y) tesoro n m cantidadPozos cantidadLava (strongRandom 100 rand)
         else if newCelda == Lava then deadMessage -- Si vas a caminar en lava        
         else if newCelda == Obstaculo then loop mapa (x,y) tesoro n m cantidadPozos cantidadLava rand -- Si vas a caminar en un obstaculo
-        else if newCelda == Tesoro then do -- Si vas a caminar a la celda del tesoro
-            clearScreen
-            putStrLn "WIN"
+        else if newCelda == Tesoro then winMessage -- Si vas a caminar a la celda del tesoro
         else loop (cambiarCelda mapa (x,y) Camino) (getMov action) tesoro n m cantidadPozos cantidadLava rand-- Si vas a caminar sobre un suelo caminable
 
 -- FUNCIONES AUXILIARES
@@ -79,6 +77,30 @@ deadMessage = do
     putStrLn "  :!:    :!:  !:!  :!:  !:!     :!:  !:!  :!:  :!:       :!:  !:!  :!:  :!:"  
     putStrLn "  ::     ::::: ::  ::::: ::      :::: ::   ::   :: ::::   :::: ::   ::   ::" 
     putStrLn "   :      : :  :    : :  :      :: :  :   :    : :: ::   :: :  :   :::  :::"
+
+winMessage :: IO ()
+winMessage = do
+    clearScreen
+    putStrLn "******************************************************************************* \n\
+\          |                   |                  |                     |\n\
+\ _________|________________.=\"\"_;=.______________|_____________________|_______\n\
+\|                   |  ,-\"_,=\"\"     `\"=.|                  |\n\
+\|___________________|__\"=._o`\"-._        `\"=.______________|___________________\n\
+\          |                `\"=._o`\"=._      _`\"=._                     |\n\
+\ _________|_____________________:=._o \"=._.\"_.-=\"'\"=.__________________|_______\n\
+\|                   |    __.--\" , ; `\"=._o.\" ,-\"\"\"-._ \".   |\n\
+\|___________________|_._\"  ,. .` ` `` ,  `\"-._\"-._   \". '__|___________________\n\
+\          |           |o`\"=._` , \"` `; .\". ,  \"-._\"-._; ;              |\n\
+\ _________|___________| ;`-.o`\"=._; .\" ` '`.\"\\` . \"-._ /_______________|_______\n\
+\|                   | |o;    `\"-.o`\"=._``  '` \" ,__.--o;   |\n\
+\|___________________|_| ;     (#) `-.o `\"=.`_.--\"_o.-; ;___|___________________\n\
+\____/______/______/___|o;._    \"      `\".o|o_.--\"    ;o;____/______/______/____\n\
+\/______/______/______/_\"=._o--._        ; | ;        ; ;/______/______/______/_\n\
+\____/______/______/______/__\"=._o--._   ;o|o;     _._;o;____/______/______/____\n\
+\/______/______/______/______/____\"=._o._; | ;_.--\"o.--\"_/______/______/______/_\n\
+\____/______/______/______/______/_____\"=.o|o_.--\"\"___/______/______/______/____\n\
+\/______/______/______/______/______/______/______/______/______/______/[YOU WIN!]\n\
+\*******************************************************************************"
 
 -- funcion auxiliar para simplificar la generacion del mapa en otras funciones.
 newMapa :: Int -> (Int,Int) -> Int -> Int -> StdGen -> Mapa Celda

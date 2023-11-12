@@ -7,6 +7,12 @@ import System.IO ( hSetBuffering, stdin, BufferMode(NoBuffering) )
 -- Estructura para recibir la entrada
 data Action k = Action {getMov::(Int,Int), getKey::k}
 
+data Score x = Score x | Nada deriving Show
+
+instance Funtor Score where
+    fmap _ Nada = Nada
+    fmap f (Score x) = Score (f x)
+
 -- Main inicializa los argumentos y el mapa
 main :: IO ()
 main = do

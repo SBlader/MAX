@@ -27,6 +27,7 @@ main = do
             let (cantidadPozos, cantidadObstaculos) = (round (fromIntegral n * fromIntegral n * 0.06) :: Int, 3 * cantidadPozos :: Int) -- Generar la cantidad de los obstaculos
             -- Generar el mapa
             let mapa = makeMapa n posRunas posTesoro cantidadPozos cantidadObstaculos rand
+            tutorial
             loop Nada mapa (0, 0) posRunas posTesoro n n cantidadPozos cantidadObstaculos (strongRandom 100 rand) -- Iniciar Loop
         
 -- Gameloop: Dibujar, Esperar movimiento, Cambiar estado y repetir

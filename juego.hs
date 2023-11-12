@@ -104,8 +104,9 @@ winMessage = do
 
 -- funcion auxiliar para simplificar la generacion del mapa en otras funciones.
 newMapa :: Int -> (Int,Int) -> Int -> Int -> StdGen -> Mapa Celda
-newMapa n tesoro cantidadPozos cantidadObstaculos rand = Mapa $ generarMapa (n) (n) (0,0) tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) chunksLava) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
-
+newMapa n tesoro cantidadPozos cantidadObstaculos rand
+    |n>10 = Mapa $ generarMapa (n) (n) (0,0) tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) chunksLava) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
+    |n<10 = Mapa $ generarMapa (n) (n) (0,0) tesoro (genChunk (n, n) [] cantidadPozos (nextRandom rand) (chunksLavaSmall rand)) (genChunk (n, n) [] cantidadObstaculos rand chunksObstaculos)
 -- itera multiples veces el generador para que se realicen grandes cambios al reiniciar el mapa.
 strongRandom :: Int -> StdGen -> StdGen
 strongRandom strength generator = foldl (\ gen _ -> nextRandom gen ) generator [1..strength]
